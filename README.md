@@ -1,4 +1,4 @@
-# Linkopus AI Microservice 
+# Linkopus RabitMQClient
 
 Welcome to the RabitMQClient repository. This project serves as a foundational template for creating microservices using Node.js and TypeScript. It is designed to provide a standardized structure and starting point for developing scalable and maintainable microservices within the Linkopus ecosystem.
 
