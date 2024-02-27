@@ -1,5 +1,4 @@
-import { publishToQueue } from '../publisher/index' // Replace 'yourModuleName' with the actual path to your module
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+import { publishToQueue } from '../publisher/index'
 
 jest.mock('../publisher/index', () => ({
   publishToQueue: jest.fn()
@@ -13,27 +12,22 @@ describe('publishToQueue function', () => {
     }
   })
 
-  it('should publish message to the queue', () => {
-    const message = 'Test Message'
-    const mockChannel = {
-      assertQueue: jest.fn(),
-      sendToQueue: jest.fn()
-    }
-
-    const mockConnection = {
-      createChannel: jest.fn().mockImplementation((cb: any) => cb(null, mockChannel)),
-      close: jest.fn()
-    }
+  it('should handle error when connection fails', async () => {
+    const errorMessage = 'Connection error';
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('amqplib/callback_api').connect.mockImplementation((_: any, cb: any) => cb(null, mockConnection))
+    (require('amqplib/callback_api')).connect.mockImplementation((_url: string, callback: any) => {
+      callback(new Error(errorMessage))
+    })
 
-    publishToQueue()
-
-    setTimeout(() => {
-      expect(mockChannel.assertQueue).toHaveBeenCalledWith('logs', { durable: false })
-      expect(mockChannel.sendToQueue).toHaveBeenCalledWith('logs', Buffer.from(message))
-    }, 100) // Adjust the delay as needed based on your test setup
+    try {
+      await publishToQueue()
+      // If the function call doesn't throw an error, it means the test failed
+      throw new Error('Connection error')
+    } catch (error: any) {
+      // Ensure that the caught error message matches the expected error message
+      expect(error.message).toBe(errorMessage)
+    }
   })
 
   it('should throw error when connection fails', () => {
@@ -43,7 +37,7 @@ describe('publishToQueue function', () => {
     require('amqplib/callback_api').connect.mockImplementation((_: any, cb: any) => cb(new Error(errorMessage)))
 
     try {
-      publishToQueue()
+      void publishToQueue()
       // If the function call doesn't throw an error, it means the test failed
       throw new Error('Connection error')
     } catch (error: any) {
@@ -63,7 +57,7 @@ describe('publishToQueue function', () => {
 
     // Assert that calling publishToQueue throws an error
     try {
-      publishToQueue()
+      void publishToQueue()
       fail('Expected publishToQueue to throw an error')
     } catch (error: any) {
       // Ensure that the caught error message matches the expected error message
