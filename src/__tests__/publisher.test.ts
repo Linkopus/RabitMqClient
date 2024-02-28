@@ -1,9 +1,5 @@
 import { sendMessage } from '../publisher/index'
 import * as amqp from 'amqplib'
-import * as dotenv from 'dotenv'
-
-// Charger les variables d'environnement depuis le fichier .env
-dotenv.config()
 
 jest.mock('amqplib')
 
@@ -17,7 +13,7 @@ describe('sendMessage', () => {
     const routingKey = 'test_routing_key'
     const message = 'Test message'
     const apiKey = 'test_api_key'
-    const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? '' // Utilisation de l'opérateur de coalescence nulle pour fournir une valeur par défaut
+    const rabbitMQUrl = 'amqp://localhost'
 
     const mockedChannel: any = {
       assertExchange: jest.fn(),
