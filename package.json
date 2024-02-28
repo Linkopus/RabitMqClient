@@ -28,7 +28,7 @@
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.6",
     "@types/mongoose": "^5.11.97",
-    "@types/node": "^20.11.17",
+    "@types/node": "^20.11.21",
     "@types/sinon": "^17.0.3",
     "@types/supertest": "^6.0.2",
     "@types/swagger-ui-express": "^4.1.6",

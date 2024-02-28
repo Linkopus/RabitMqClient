@@ -1,14 +1,14 @@
-import * as dotenv from 'dotenv'
 import * as amqp from 'amqplib'
-dotenv.config()
+import dotenv from 'dotenv'
+import path from 'path'
 
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 export async function sendMessage (exchange: string, routingKey: string, message: string, apiKey: string): Promise<void> {
   let connection: amqp.Connection | null = null
   let channel: amqp.Channel | null = null
 
   try {
     const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
-
     if (rabbitMQUrl === '') {
       throw new Error('RabbitMQ URL is not provided in the environment variables.')
     }
