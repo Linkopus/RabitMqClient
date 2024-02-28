@@ -14,7 +14,7 @@ export async function sendMessage (
   let channel: amqp.Channel | null = null
 
   try {
-    const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? '' // Default URL
+    const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
     connection = await amqp.connect(rabbitMQUrl)
     channel = await connection.createChannel()
 

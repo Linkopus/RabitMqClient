@@ -1,19 +1,22 @@
 import { sendMessage } from '../publisher/index'
 import * as amqp from 'amqplib'
+import dotenv from 'dotenv'
+import * as path from 'path'
 
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 jest.mock('amqplib')
 
 describe('sendMessage', () => {
   afterEach(() => {
     jest.clearAllMocks()
   })
-
+  process.env.RABBIT_MQ_URL = 'amqp://localhost'
   it('initializes publisher with correct parameters', async () => {
     const exchange = 'test_exchange'
     const routingKey = 'test_routing_key'
     const message = 'Test message'
     const apiKey = 'test_api_key'
-    const rabbitMQUrl = 'amqp://localhost'
+    const rabbitMQUrl = process.env.RABBIT_MQ_URL
 
     const mockedChannel: any = {
       assertExchange: jest.fn(),
@@ -55,7 +58,7 @@ describe('sendMessage', () => {
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
-    expect(amqp.connect).toHaveBeenCalledWith('amqp://localhost')
+    expect(amqp.connect).toHaveBeenCalledWith(process.env.RABBIT_MQ_URL)
     expect(mockedConnection.createChannel).toHaveBeenCalled()
     expect(mockedChannel.assertExchange).toHaveBeenCalledWith(exchange, 'direct', { durable: true })
     expect(mockedChannel.publish).toHaveBeenCalledWith(exchange, routingKey, Buffer.from(message))
@@ -79,7 +82,7 @@ describe('sendMessage', () => {
 
     await expect(sendMessage(exchange, routingKey, message, apiKey)).rejects.toThrow('Channel creation failed')
 
-    expect(amqp.connect).toHaveBeenCalledWith('amqp://localhost')
+    expect(amqp.connect).toHaveBeenCalledWith(process.env.RABBIT_MQ_URL)
     expect(mockedConnection.createChannel).toHaveBeenCalled()
     expect(mockedConnection.close).toHaveBeenCalled()
   })
@@ -105,7 +108,7 @@ describe('sendMessage', () => {
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
-    expect(amqp.connect).toHaveBeenCalledWith('amqp://localhost')
+    expect(amqp.connect).toHaveBeenCalledWith(process.env.RABBIT_MQ_URL)
     expect(mockedConnection.createChannel).toHaveBeenCalled()
     expect(mockedChannel.assertExchange).toHaveBeenCalledWith(exchange, 'direct', { durable: true })
     expect(mockedChannel.publish).toHaveBeenCalledWith(exchange, routingKey, Buffer.from(message))
