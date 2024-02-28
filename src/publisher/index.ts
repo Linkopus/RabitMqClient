@@ -1,44 +1,31 @@
+import * as dotenv from 'dotenv'
 import * as amqp from 'amqplib'
+dotenv.config()
 
-const RABBITMQ_URL = 'amqp://localhost'
-const QUEUE_NAME = 'logs'
-const DELAY_MS = 500
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-
-export async function publishToQueue (): Promise<void> {
-  const message = 'hello'
+export async function sendMessage (exchange: string, routingKey: string, message: string, apiKey: string): Promise<void> {
+  let connection: amqp.Connection | null = null
+  let channel: amqp.Channel | null = null
 
   try {
-    const connection = await amqp.connect(RABBITMQ_URL)
-    const channel = await connection.createChannel()
+    const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
 
-    await channel.assertQueue(QUEUE_NAME, {
-      durable: false
-    })
+    if (rabbitMQUrl === '') {
+      throw new Error('RabbitMQ URL is not provided in the environment variables.')
+    }
 
-    channel.sendToQueue(QUEUE_NAME, Buffer.from(message))
-    console.log(' [x] Sent %s', message)
+    connection = await amqp.connect(rabbitMQUrl)
+    channel = await connection.createChannel()
 
-    await delay(DELAY_MS) // Wait for a delay before closing the connection
-    await connection.close()
-    process.exit(0)
-  } catch (error) {
-    console.error('Failed to publish message to the queue:', error)
-    throw error // Rethrow the error to ensure it's not silently ignored
+    await channel.assertExchange(exchange, 'direct', { durable: true })
+    channel.publish(exchange, routingKey, Buffer.from(message))
+
+    console.log(`Sent message '${message}' with API key '${apiKey}' to exchange '${exchange}' with routing key '${routingKey}'`)
+  } finally {
+    if (channel != null) {
+      await channel.close()
+    }
+    if (connection != null) {
+      await connection.close()
+    }
   }
 }
-
-async function delay (ms: number): Promise<void> {
-  await new Promise(resolve => setTimeout(resolve, ms))
-}
-
-void (async () => {
-  try {
-    await publishToQueue()
-  } catch (error) {
-    // Handle any uncaught errors here
-    console.error('An error occurred:', error)
-    process.exit(1) // Exit the process with a non-zero status code to indicate failure
-  }
-})()

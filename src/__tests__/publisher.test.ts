@@ -1,67 +1,115 @@
-import { publishToQueue } from '../publisher/index'
+import { sendMessage } from '../publisher/index'
+import * as amqp from 'amqplib'
 
-jest.mock('../publisher/index', () => ({
-  publishToQueue: jest.fn()
-}))
+jest.mock('amqplib')
 
-describe('publishToQueue function', () => {
-  // Mocking the amqplib module
-  jest.mock('amqplib/callback_api', () => {
-    return {
-      connect: jest.fn()
-    }
+describe('sendMessage', () => {
+  afterEach(() => {
+    jest.clearAllMocks()
   })
 
-  it('should handle error when connection fails', async () => {
-    const errorMessage = 'Connection error';
+  it('initializes publisher with correct parameters', async () => {
+    const exchange = 'test_exchange'
+    const routingKey = 'test_routing_key'
+    const message = 'Test message'
+    const apiKey = 'test_api_key'
+    const rabbitMQUrl = 'amqp://localhost'
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    (require('amqplib/callback_api')).connect.mockImplementation((_url: string, callback: any) => {
-      callback(new Error(errorMessage))
-    })
-
-    try {
-      await publishToQueue()
-      // If the function call doesn't throw an error, it means the test failed
-      throw new Error('Connection error')
-    } catch (error: any) {
-      // Ensure that the caught error message matches the expected error message
-      expect(error.message).toBe(errorMessage)
+    const mockedChannel: any = {
+      assertExchange: jest.fn(),
+      publish: jest.fn(),
+      close: jest.fn()
     }
+
+    const mockedConnection: any = {
+      createChannel: jest.fn().mockResolvedValue(mockedChannel),
+      close: jest.fn()
+    };
+
+    (amqp.connect as jest.Mock).mockResolvedValue(mockedConnection)
+
+    await sendMessage(exchange, routingKey, message, apiKey)
+
+    expect(amqp.connect).toHaveBeenCalledWith(rabbitMQUrl)
+    expect(mockedConnection.createChannel).toHaveBeenCalled()
   })
 
-  it('should throw error when connection fails', () => {
-    const errorMessage = 'Connection error'
+  it('sends message to the exchange with routing key', async () => {
+    const exchange = 'test_exchange'
+    const routingKey = 'test_routing_key'
+    const message = 'Test message'
+    const apiKey = 'test_api_key'
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('amqplib/callback_api').connect.mockImplementation((_: any, cb: any) => cb(new Error(errorMessage)))
-
-    try {
-      void publishToQueue()
-      // If the function call doesn't throw an error, it means the test failed
-      throw new Error('Connection error')
-    } catch (error: any) {
-      // Check if the caught error message matches the expected error message
-      expect(error.message).toBe(errorMessage)
+    const mockedChannel: any = {
+      assertExchange: jest.fn(),
+      publish: jest.fn(),
+      close: jest.fn()
     }
+
+    const mockedConnection: any = {
+      createChannel: jest.fn().mockResolvedValue(mockedChannel),
+      close: jest.fn()
+    };
+
+    (amqp.connect as jest.Mock).mockResolvedValue(mockedConnection)
+
+    await sendMessage(exchange, routingKey, message, apiKey)
+
+    expect(amqp.connect).toHaveBeenCalledWith('amqp://localhost')
+    expect(mockedConnection.createChannel).toHaveBeenCalled()
+    expect(mockedChannel.assertExchange).toHaveBeenCalledWith(exchange, 'direct', { durable: true })
+    expect(mockedChannel.publish).toHaveBeenCalledWith(exchange, routingKey, Buffer.from(message))
+    expect(mockedChannel.close).toHaveBeenCalled()
+    expect(mockedConnection.close).toHaveBeenCalled()
   })
-  it('should throw error when channel creation fails', () => {
-    const errorMessage = 'fail is not defined'
 
-    // Mock the connection to RabbitMQ without establishing a secure connection
-    const mockConnection = {
-      createChannel: jest.fn().mockImplementation((cb: any) => cb(new Error(errorMessage)))
-    }
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('amqplib/callback_api').connect.mockImplementation((_: any, cb: any) => cb(null, mockConnection))
+  it('handles errors during channel creation', async () => {
+    const exchange = 'test_exchange'
+    const routingKey = 'test_routing_key'
+    const message = 'Test message'
+    const apiKey = 'test_api_key'
 
-    // Assert that calling publishToQueue throws an error
-    try {
-      void publishToQueue()
-      fail('Expected publishToQueue to throw an error')
-    } catch (error: any) {
-      // Ensure that the caught error message matches the expected error message
-      expect(error.message).toMatch(errorMessage)
+    const error = new Error('Channel creation failed')
+    const mockedConnection: any = {
+      createChannel: jest.fn().mockRejectedValueOnce(error),
+      close: jest.fn()
+    };
+
+    (amqp.connect as jest.Mock).mockResolvedValueOnce(mockedConnection)
+
+    await expect(sendMessage(exchange, routingKey, message, apiKey)).rejects.toThrow('Channel creation failed')
+
+    expect(amqp.connect).toHaveBeenCalledWith('amqp://localhost')
+    expect(mockedConnection.createChannel).toHaveBeenCalled()
+    expect(mockedConnection.close).toHaveBeenCalled()
+  })
+
+  it('sends message to the exchange when message is empty', async () => {
+    const exchange = 'test_exchange'
+    const routingKey = 'test_routing_key'
+    const message = ''
+    const apiKey = 'test_api_key'
+
+    const mockedChannel: any = {
+      assertExchange: jest.fn(),
+      publish: jest.fn(),
+      close: jest.fn()
     }
+
+    const mockedConnection: any = {
+      createChannel: jest.fn().mockResolvedValue(mockedChannel),
+      close: jest.fn()
+    };
+
+    (amqp.connect as jest.Mock).mockResolvedValueOnce(mockedConnection)
+
+    await sendMessage(exchange, routingKey, message, apiKey)
+
+    expect(amqp.connect).toHaveBeenCalledWith('amqp://localhost')
+    expect(mockedConnection.createChannel).toHaveBeenCalled()
+    expect(mockedChannel.assertExchange).toHaveBeenCalledWith(exchange, 'direct', { durable: true })
+    expect(mockedChannel.publish).toHaveBeenCalledWith(exchange, routingKey, Buffer.from(message))
+    expect(mockedChannel.close).toHaveBeenCalled()
+    expect(mockedConnection.close).toHaveBeenCalled()
   })
 })
