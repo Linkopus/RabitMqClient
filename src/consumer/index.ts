@@ -20,6 +20,8 @@ export async function consumeMessages (
     const queueName = `${routingKey}-${apiKey}` // Incorporate API key into the queue name
 
     await channel.assertExchange(exchange, 'direct', { durable: true })
+
+    
     const assertQueue = await channel.assertQueue(queueName, { exclusive: false, autoDelete: true }) // Enable auto-delete for the queue
     await channel.bindQueue(assertQueue.queue, exchange, routingKey)
 
@@ -46,3 +48,4 @@ export async function consumeMessages (
     console.error('Error consuming messages:', error)
   }
 }
+
