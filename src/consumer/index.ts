@@ -17,15 +17,13 @@ export async function consumeMessages (
     connection = await amqp.connect(rabbitMQUrl)
     channel = await connection.createChannel()
 
-    const queueName = `${routingKey}-${apiKey}` // Incorporate API key into the queue name
+    const queueName = `${routingKey}-${apiKey}`// Incorporate API key into the queue name
 
     await channel.assertExchange(exchange, 'direct', { durable: true })
-
-    
     const assertQueue = await channel.assertQueue(queueName, { exclusive: false, autoDelete: true }) // Enable auto-delete for the queue
     await channel.bindQueue(assertQueue.queue, exchange, routingKey)
 
-    console.log(`Waiting for messages in queue '${queueName}' from exchange '${exchange}' with routing key '${routingKey}'`)
+    console.log(`Waiting for messages in queue '${queueName}' from exchange '${exchange}' with routing key '${routingKey}' `)
 
     await channel.consume(queueName, (msg) => {
       if (msg !== null) {
@@ -33,9 +31,9 @@ export async function consumeMessages (
         const messageRoutingKey = msg.fields.routingKey
 
         if (messageRoutingKey === routingKey) {
-          console.log(`Received message '${messageContent}' with routing key '${messageRoutingKey}'`)
+          console.log(`Received message '${messageContent}' with routing key '${messageRoutingKey}' `)
         } else {
-          console.log(`Ignoring message with invalid routing key '${messageRoutingKey}'`)
+          console.log(`Ignoring message with invalid routing key '${messageRoutingKey}' `)
         }
 
         // Acknowledge the message
@@ -48,4 +46,3 @@ export async function consumeMessages (
     console.error('Error consuming messages:', error)
   }
 }
-
