@@ -7,10 +7,13 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 jest.mock('amqplib')
 
 describe('sendMessage', () => {
+  beforeEach(() => {
+    process.env.RABBIT_MQ_URL = 'amqp://localhost'
+  })
   afterEach(() => {
     jest.clearAllMocks()
   })
-  process.env.RABBIT_MQ_URL = 'amqp://localhost'
+
   it('initializes publisher with correct parameters', async () => {
     const exchange = 'test_exchange'
     const routingKey = 'test_routing_key'
