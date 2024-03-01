@@ -1,7 +1,7 @@
 import * as amqp from 'amqplib'
 import dotenv from 'dotenv'
 import * as path from 'path'
-
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 export async function sendMessage (

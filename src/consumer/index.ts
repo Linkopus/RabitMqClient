@@ -4,45 +4,58 @@ import * as path from 'path'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
+async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
+  try {
+    const connection = await amqp.connect(rabbitMQUrl)
+    const channel = await connection.createChannel()
+
+    connection.on('error', (err) => { console.error('Connection error', err) })
+    connection.on('close', () => { console.log('Connection closed') })
+
+    return channel
+  } catch (error) {
+    console.error('Error creating channel:', error)
+    throw error
+  }
+}
+
 export async function consumeMessages (
   exchange: string,
   routingKey: string,
-  apiKey: string // API key for each instance of the consumer microservice
+  apiKey: string
 ): Promise<void> {
-  let connection: amqp.Connection | null = null
-  let channel: amqp.Channel | null = null
-
   try {
     const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
-    connection = await amqp.connect(rabbitMQUrl)
-    channel = await connection.createChannel()
+    const channel = await createChannel(rabbitMQUrl)
 
-    const queueName = `${routingKey}-${apiKey}`// Incorporate API key into the queue name
-
+    const queueName = `${routingKey}-${apiKey}`
     await channel.assertExchange(exchange, 'direct', { durable: true })
-    const assertQueue = await channel.assertQueue(queueName, { exclusive: false, autoDelete: true }) // Enable auto-delete for the queue
+    const assertQueue = await channel.assertQueue(queueName, { exclusive: false, autoDelete: true })
     await channel.bindQueue(assertQueue.queue, exchange, routingKey)
 
-    console.log(`Waiting for messages in queue '${queueName}' from exchange '${exchange}' with routing key '${routingKey}' `)
+    console.log(`Waiting for messages in '${queueName}' from '${exchange}' with '${routingKey}'`)
 
-    await channel.consume(queueName, (msg) => {
-      if (msg !== null) {
-        const messageContent = msg.content.toString()
-        const messageRoutingKey = msg.fields.routingKey
+    // Await the Promise returned by channel.consume
+    await new Promise<void>((resolve, reject) => {
+      channel.consume(queueName, (msg) => {
+        if (msg !== null) {
+          const content = msg.content.toString()
+          const key = msg.fields.routingKey
 
-        if (messageRoutingKey === routingKey) {
-          console.log(`Received message '${messageContent}' with routing key '${messageRoutingKey}' `)
-        } else {
-          console.log(`Ignoring message with invalid routing key '${messageRoutingKey}' `)
+          if (key === routingKey) {
+            console.log(`Received: '${content}' with key '${key}'`)
+            channel.ack(msg)
+          } else {
+            console.log(`Ignored: invalid key '${key}'`)
+          }
         }
-
-        // Acknowledge the message
-        if (channel !== null) {
-          channel.ack(msg)
-        }
-      }
-    }, { exclusive: false })
+      }, { noAck: false }).then(() => {
+        resolve() // Resolve the Promise when consumption is complete
+      }).catch((error) => {
+        reject(error) // Reject the Promise if there's an error
+      })
+    })
   } catch (error) {
-    console.error('Error consuming messages:', error)
+    console.error('Error:', error)
   }
 }
