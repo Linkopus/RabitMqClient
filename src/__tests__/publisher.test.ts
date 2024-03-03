@@ -6,6 +6,21 @@ import * as path from 'path'
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 jest.mock('amqplib')
 
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'), // Preserve the original fs module functionality
+  readFileSync: jest.fn().mockImplementation((filePath: string) => {
+    // Provide mock certificate content based on file path
+    if (filePath.includes('client_certificate.pem')) {
+      return 'mocked_client_certificate_content'
+    } else if (filePath.includes('client_private_key.pem')) {
+      return 'mocked_client_private_key_content'
+    } else if (filePath.includes('ca_certificate.pem')) {
+      return 'mocked_ca_certificate_content'
+    }
+    throw new Error(`Unexpected file path: ${filePath}`)
+  })
+}))
+
 describe('sendMessage', () => {
   beforeEach(() => {
     process.env.RABBIT_MQ_URL = 'amqps://localhost:5671'
@@ -13,6 +28,7 @@ describe('sendMessage', () => {
     process.env.CLIENT_KEY_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_private_key.pem'
     process.env.CA_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/ca_certificate.pem'
   })
+
   afterEach(() => {
     jest.clearAllMocks()
   })
