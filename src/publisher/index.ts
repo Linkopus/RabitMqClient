@@ -4,7 +4,6 @@ import * as path from 'path'
 import fs from 'fs'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1'
 
 export async function sendMessage (
   exchange: string,
