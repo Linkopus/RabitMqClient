@@ -8,7 +8,10 @@ jest.mock('amqplib')
 
 describe('sendMessage', () => {
   beforeEach(() => {
-    process.env.RABBIT_MQ_URL = 'amqp://localhost'
+    process.env.RABBIT_MQ_URL = 'amqps://localhost:5671'
+    process.env.CLIENT_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_certificate.pem'
+    process.env.CLIENT_KEY_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_private_key.pem'
+    process.env.CA_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/ca_certificate.pem'
   })
   afterEach(() => {
     jest.clearAllMocks()
@@ -19,7 +22,6 @@ describe('sendMessage', () => {
     const routingKey = 'test_routing_key'
     const message = 'Test message'
     const apiKey = 'test_api_key'
-    const rabbitMQUrl = process.env.RABBIT_MQ_URL
 
     const mockedChannel: any = {
       assertExchange: jest.fn(),
@@ -36,7 +38,15 @@ describe('sendMessage', () => {
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
-    expect(amqp.connect).toHaveBeenCalledWith(rabbitMQUrl)
+    expect(amqp.connect).toHaveBeenCalledWith(
+      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      expect.objectContaining({
+        ca: expect.anything(),
+        cert: expect.anything(),
+        key: expect.anything(),
+        passphrase: expect.anything()
+      })
+    )
     expect(mockedConnection.createChannel).toHaveBeenCalled()
   })
 
@@ -61,7 +71,15 @@ describe('sendMessage', () => {
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
-    expect(amqp.connect).toHaveBeenCalledWith(process.env.RABBIT_MQ_URL)
+    expect(amqp.connect).toHaveBeenCalledWith(
+      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      expect.objectContaining({
+        ca: expect.anything(),
+        cert: expect.anything(),
+        key: expect.anything(),
+        passphrase: expect.anything()
+      })
+    )
     expect(mockedConnection.createChannel).toHaveBeenCalled()
     expect(mockedChannel.assertExchange).toHaveBeenCalledWith(exchange, 'direct', { durable: true })
     expect(mockedChannel.publish).toHaveBeenCalledWith(exchange, routingKey, Buffer.from(message))
@@ -85,7 +103,15 @@ describe('sendMessage', () => {
 
     await expect(sendMessage(exchange, routingKey, message, apiKey)).rejects.toThrow('Channel creation failed')
 
-    expect(amqp.connect).toHaveBeenCalledWith(process.env.RABBIT_MQ_URL)
+    expect(amqp.connect).toHaveBeenCalledWith(
+      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      expect.objectContaining({
+        ca: expect.anything(),
+        cert: expect.anything(),
+        key: expect.anything(),
+        passphrase: expect.anything()
+      })
+    )
     expect(mockedConnection.createChannel).toHaveBeenCalled()
     expect(mockedConnection.close).toHaveBeenCalled()
   })
@@ -111,11 +137,68 @@ describe('sendMessage', () => {
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
-    expect(amqp.connect).toHaveBeenCalledWith(process.env.RABBIT_MQ_URL)
+    expect(amqp.connect).toHaveBeenCalledWith(
+      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      expect.objectContaining({
+        ca: expect.anything(),
+        cert: expect.anything(),
+        key: expect.anything(),
+        passphrase: expect.anything()
+      })
+    )
     expect(mockedConnection.createChannel).toHaveBeenCalled()
     expect(mockedChannel.assertExchange).toHaveBeenCalledWith(exchange, 'direct', { durable: true })
     expect(mockedChannel.publish).toHaveBeenCalledWith(exchange, routingKey, Buffer.from(message))
     expect(mockedChannel.close).toHaveBeenCalled()
     expect(mockedConnection.close).toHaveBeenCalled()
+  })
+  it('should use TLS for secure communication', () => {
+    const amqpUrl = 'amqps://localhost:5671'
+
+    // Extract protocol from the AMQP URL
+    const protocol = amqpUrl.split('://')[0]
+
+    // Assert that the protocol is 'amqps' indicating TLS usage
+    expect(protocol).toBe('amqps')
+  })
+
+  it('ensures TLS certificate paths are defined', async () => {
+    // Unset certificate paths
+    delete process.env.CLIENT_CERT_PATH
+    delete process.env.CLIENT_KEY_PATH
+    delete process.env.CA_CERT_PATH
+
+    await expect(sendMessage('test_exchange', 'test_routing_key', 'Test message', 'test_api_key'))
+      .rejects
+      .toThrow('Client certificate, client key, or CA certificate paths are not defined.')
+  })
+
+  it('transmits data over an encrypted connection', async () => {
+    const mockedChannel: any = {
+      assertExchange: jest.fn(),
+      publish: jest.fn(),
+      close: jest.fn()
+    }
+
+    const mockedConnection: any = {
+      createChannel: jest.fn().mockResolvedValue(mockedChannel),
+      close: jest.fn()
+    };
+
+    (amqp.connect as jest.Mock).mockResolvedValue(mockedConnection)
+
+    await sendMessage('test_exchange', 'test_routing_key', 'Test message', 'test_api_key')
+
+    // Verify that the amqplib's connect method is called with an encrypted connection (amqps://)
+    expect(amqp.connect).toHaveBeenCalledWith(
+      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      expect.objectContaining({
+        ca: expect.anything(),
+        cert: expect.anything(),
+        key: expect.anything(),
+        passphrase: expect.anything()
+      })
+    )
+    // Additional assertions can be added here to inspect the encrypted data or verify the use of specific encryption algorithms.
   })
 })

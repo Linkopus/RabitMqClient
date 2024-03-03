@@ -1,18 +1,47 @@
 import * as amqp from 'amqplib'
 import dotenv from 'dotenv'
 import * as path from 'path'
+import fs from 'fs'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1'
+
+let sharedConnection: amqp.Connection | null = null
+let sharedChannel: amqp.Channel | null = null
 
 async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
   try {
-    const connection = await amqp.connect(rabbitMQUrl)
-    const channel = await connection.createChannel()
+    if (sharedConnection === null || sharedChannel === null) {
+      const clientCertPath = process.env.CLIENT_CERT_PATH
+      const clientKeyPath = process.env.CLIENT_KEY_PATH
+      const caCertPath = process.env.CA_CERT_PATH
 
-    connection.on('error', (err) => { console.error('Connection error', err) })
-    connection.on('close', () => { console.log('Connection closed') })
+      if (clientCertPath === null || clientCertPath === undefined || clientCertPath === '' ||
+      clientKeyPath === null || clientKeyPath === undefined || clientKeyPath === '' ||
+      caCertPath === null || caCertPath === undefined || caCertPath === '') {
+        throw new Error('Client certificate, client key, or CA certificate paths are not defined.')
+      }
 
-    return channel
+      const clientCert = fs.readFileSync(clientCertPath)
+      const clientKey = fs.readFileSync(clientKeyPath)
+      const caCert = fs.readFileSync(caCertPath)
+
+      sharedConnection = await amqp.connect(rabbitMQUrl, {
+        cert: clientCert,
+        key: clientKey,
+        passphrase: 'linkopus',
+        ca: [caCert]
+      })
+      sharedChannel = await sharedConnection.createChannel()
+      sharedConnection.on('error', (err) => {
+        console.error('Shared connection error', err)
+      })
+      sharedConnection.on('close', () => {
+        console.log('Shared connection closed')
+      })
+    }
+
+    return sharedChannel
   } catch (error) {
     console.error('Error creating channel:', error)
     throw error
@@ -35,7 +64,6 @@ export async function consumeMessages (
 
     console.log(`Waiting for messages in '${queueName}' from '${exchange}' with '${routingKey}'`)
 
-    // Await the Promise returned by channel.consume
     await new Promise<void>((resolve, reject) => {
       channel.consume(queueName, (msg) => {
         if (msg !== null) {
@@ -50,9 +78,9 @@ export async function consumeMessages (
           }
         }
       }, { noAck: false }).then(() => {
-        resolve() // Resolve the Promise when consumption is complete
+        resolve()
       }).catch((error) => {
-        reject(error) // Reject the Promise if there's an error
+        reject(error)
       })
     })
   } catch (error) {
