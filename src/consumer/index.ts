@@ -71,8 +71,8 @@ export async function consumeMessages (
           const key = msg.fields.routingKey
 
           if (key === routingKey) {
-            console.log(`Received: '${content}' with key '${key}'`)
-            callback(content, key) 
+            console.log(`Received:'${content}' with key '${key}'`)
+            callback(content, key)
             channel.ack(msg)
           } else {
             console.log(`Ignored: invalid key '${key}'`)
