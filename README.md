@@ -1,96 +1,107 @@
-# Linkopus RabitMQClient
+### RabbitMQ Installation
 
-Welcome to the RabitMQClient repository. This project serves as a foundational template for creating microservices using Node.js and TypeScript. It is designed to provide a standardized structure and starting point for developing scalable and maintainable microservices within the Linkopus ecosystem.
+Install Erlang if not already installed:
 
-## Getting Started
+    sudo apt install erlang
 
-These instructions will help you set up a copy of this template for development and experimentation.
+Install the RabbitMQ signing key and adds it to your list of trusted keys:
 
-### Prerequisites
+    wget -qO - https://www.rabbitmq.com/rabbitmq-release-signing-key.asc | sudo apt-key add -
 
-- Node.js (version 14 or later recommended)
-- npm (version 6 or later)
+Add the Erlang and RabbitMQ repository from Bintray to your system's software sources list:
 
-### Installation
+    echo "deb https://dl.bintray.com/rabbitmq-erlang/debian focal erlang" | sudo tee /etc/apt/sources.list.d/bintray.rabbitmq.list
+    echo "deb https://dl.bintray.com/rabbitmq/debian focal main" | sudo tee -a /etc/apt/sources.list.d/bintray.rabbitmq.list
+    sudo apt update
 
-1. **Clone the Repository**
+Install RabbitMQ :
 
-   Clone this repository to your local machine to begin working on your microservice:
+    sudo apt install rabbitmq-server
 
-    `git clone https://github.com/Linkopus/RabitMQClient.git`
+Check status if it's running :
+
+    sudo systemctl status rabbitmq-server
+
+Enable the management plugin :
+
+    sudo rabbitmq-plugins enable rabbitmq_management
+
+Restart RabbitMQ to take changes :
+
+    sudo systemctl restart rabbitmq-server
+
+Visit http://localhost:15672 to confirm that Rabbitmq is installed on your system
+
+### Security
+
+Create a folder in /etc/rabbitmq/ :
+
+     sudo mkdir /etc/rabbitmq/ssl
+     cd /etc/rabbitmq/ssl
+
+Generate a CA and use it to produce two certificate/key pairs, one for the server and another for clients:
+
+    git clone https://github.com/rabbitmq/tls-gen tls-gen
+    cd tls-gen/basic
+    make PASSWORD=linkopus
+    make verify
+    make info
+    ls -l ./result
+
+Change the certificates name for easy use:
+
+     sudo mv client_linkopus-Precision-3541_certificate.pem client_certificate.pem
+     sudo mv client_linkopus-Precision-3541_key.pem client_private_key.pem
+     sudo mv server_linkopus-Precision-3541_certificate.pem server_certificate.pem
+     sudo mv server_linkopus-Precision-3541_key.pem server_private_key.pem
+
+Change certificates permission:
+
+    sudo chmod o+r client_certificate.pem
+    sudo chmod o+r server_certificate.pem
+    sudo chmod o+r client_private_key.pem
+    sudo chmod o+r server_private_key.pem
+
+Open the Rabbitmq configuration file :
+
+    sudo nano /etc/rabbitmq/rabbitmq.conf
+
+Copy and paste the configuration to enable ssl (CTRL+X to save):
+
+    listeners.ssl.default = 5671
+    ssl_options.cacertfile = /etc/rabbitmq/ssl/tls-gen/basic/result/ca_certificate.pem
+    ssl_options.certfile= /etc/rabbitmq/ssl/tls-gen/basic/result/server_certificate.pem
+    ssl_options.keyfile= /etc/rabbitmq/ssl/tls-gen/basic/result/server_private_key.pem
+    ssl_options.versions.3 = tlsv1.2
+    ssl_options.versions.4 = tlsv1.3
+    ssl_options.password=linkopus
+    auth_mechanisms.1 = PLAIN
+    auth_mechanisms.2 = EXTERNAL
+    ssl_options.verify  = verify_peer
+    ssl_options.fail_if_no_peer_cert = true
+
+Restart RabbitMQ to take changes :
+
+    sudo systemctl restart rabbitmq-server
+
+
+
+
    
-   Navigate to the repository:
-   
-    `cd AiService`
-
-3. **Install Dependencies**
-
-Install the necessary npm packages defined in `package.json`:
-
-    npm install
-  
-
-### Project Structure
-
-Here's an overview of the project's directory structure:
-
-- `src/`: Contains the source code for the microservice, including TypeScript files.
-- `routes/`: Defines Express routes for your microservice's API endpoints.
-- `index.ts`: The entry point for the microservice application.
-- `__tests__/`: Contains test files for the microservice.
-- `tsconfig.json`: Configuration file for TypeScript.
-- `jest.config.ts`: Configuration file for Jest, used for running tests.
-- `Dockerfile`: Docker configuration for building a containerized version of the microservice.
-- `.eslintrc.json`: ESLint configuration for linting TypeScript files.
-
-### Running the Service
-
-To start the microservice locally, run:
-
-    npm run dev
-
-
-This command will start the application in development mode with hot reloading enabled.
-
-### Running Tests
-
-Execute the following command to run the test suite:
-
-    npm test
-
-
-This will run all tests defined in the `__tests__/` directory using Jest.
-
-### Linting
-
-To check for linting errors in the TypeScript files, run:
-
-    npm run lint
-
-
-To automatically fix linting errors, run:
-
-    npm run lint:fix
 
 
 
-### Dockerization
-
-To build a Docker container for the microservice, execute:
-
-    docker build -t linkopus-RabitMQClient .
 
 
-And to run the container:
-
-    docker run -p 3000:3000 linkopus-RabitMQClient
 
 
-## Contributing
 
-We welcome contributions from Linkopus team members. Please feel free to create a new branch, make your changes, and submit a pull request.
 
-## License
 
-This project is licensed under the [MIT License](LICENSE). See the LICENSE file in the repository for full details.
+
+
+
+
+
+
 
