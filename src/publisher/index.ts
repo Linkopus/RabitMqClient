@@ -49,4 +49,3 @@ export async function sendMessage (
     }
   }
 }
-sendMessage('test','test','test','test')

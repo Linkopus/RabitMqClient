@@ -50,7 +50,8 @@ async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
 export async function consumeMessages (
   exchange: string,
   routingKey: string,
-  apiKey: string
+  apiKey: string,
+  callback: (content: string, key: string) => void
 ): Promise<void> {
   try {
     const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
@@ -71,6 +72,7 @@ export async function consumeMessages (
 
           if (key === routingKey) {
             console.log(`Received: '${content}' with key '${key}'`)
+            callback(content, key) 
             channel.ack(msg)
           } else {
             console.log(`Ignored: invalid key '${key}'`)

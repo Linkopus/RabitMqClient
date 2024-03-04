@@ -16,6 +16,10 @@ describe('Message Passing Test', () => {
     const message = 'Hello, world!'
     const apiKey = 'test_api_key'
 
+    function test (): void {
+      console.log('callback test')
+    }
+
     // Mocked consumeMessages function
     const consumeMessagesMock = jest.fn().mockResolvedValueOnce(undefined)
 
@@ -28,12 +32,12 @@ describe('Message Passing Test', () => {
 
     // Execute the test
     await new Promise((resolve) => setTimeout(resolve, 500)) // Wait for consumer to be ready
-    await expect(consumeMessages(exchange, routingKey, apiKey)).resolves.toBeUndefined() // Consume message
+    await expect(consumeMessages(exchange, routingKey, apiKey, test)).resolves.toBeUndefined() // Consume message
 
     await expect(sendMessage(exchange, routingKey, message, apiKey)).resolves.toBeUndefined() // Send message
 
     // Verify that the mocked functions were called with the correct parameters
-    expect(consumeMessagesMock).toHaveBeenCalledWith(exchange, routingKey, apiKey)
+    expect(consumeMessagesMock).toHaveBeenCalledWith(exchange, routingKey, apiKey, test)
     expect(sendMessageMock).toHaveBeenCalledWith(exchange, routingKey, message, apiKey)
   })
   it('should send and consume two messages with two consumers', async () => {
@@ -43,6 +47,9 @@ describe('Message Passing Test', () => {
     const message1 = '1'
     const message2 = '2'
     const apiKey = 'test_api_key'
+    function test (): void {
+      console.log('callback test')
+    }
 
     // Mocked consumeMessages function for consumer 1
     const consumeMessagesMock1 = jest.fn().mockResolvedValueOnce(undefined)
@@ -69,14 +76,14 @@ describe('Message Passing Test', () => {
     await new Promise((resolve) => setTimeout(resolve, 500)) // Wait for consumers to be ready
 
     // Execute consumption and sending messages
-    await expect(consumeMessages(exchange, routingKey1, apiKey)).resolves.toBeUndefined() // Consume message 1
-    await expect(consumeMessages(exchange, routingKey2, apiKey)).resolves.toBeUndefined() // Consume message 2
+    await expect(consumeMessages(exchange, routingKey1, apiKey, test)).resolves.toBeUndefined() // Consume message 1
+    await expect(consumeMessages(exchange, routingKey2, apiKey, test)).resolves.toBeUndefined() // Consume message 2
     await expect(sendMessage(exchange, routingKey1, message1, apiKey)).resolves.toBeUndefined() // Send message 1
     await expect(sendMessage(exchange, routingKey2, message2, apiKey)).resolves.toBeUndefined() // Send message 2
 
     // Verify that the mocked functions were called with the correct parameters
-    expect(consumeMessagesMock1).toHaveBeenCalledWith(exchange, routingKey1, apiKey)
-    expect(consumeMessagesMock2).toHaveBeenCalledWith(exchange, routingKey2, apiKey)
+    expect(consumeMessagesMock1).toHaveBeenCalledWith(exchange, routingKey1, apiKey, test)
+    expect(consumeMessagesMock2).toHaveBeenCalledWith(exchange, routingKey2, apiKey, test)
     expect(sendMessageMock1).toHaveBeenCalledWith(exchange, routingKey1, message1, apiKey)
     expect(sendMessageMock2).toHaveBeenCalledWith(exchange, routingKey2, message2, apiKey)
   })
@@ -85,6 +92,9 @@ describe('Message Passing Test', () => {
     const routingKey = 'test_routing_key'
     const message = 'Hello, world!'
     const apiKey = 'test_api_key'
+    function test (): void {
+      console.log('callback test')
+    }
 
     // Mocked consumeMessages function for consumer 1
     const consumeMessagesMock1 = jest.fn().mockResolvedValueOnce(undefined)
@@ -107,8 +117,8 @@ describe('Message Passing Test', () => {
     await new Promise((resolve) => setTimeout(resolve, 500)) // Wait for consumers to be ready
 
     // Execute consumption and sending message
-    await expect(consumeMessages(exchange, routingKey, apiKey)).resolves.toBeUndefined() // Consume message for consumer 1
-    await expect(consumeMessages(exchange, routingKey, apiKey)).resolves.toBeUndefined() // Consume message for consumer 2
+    await expect(consumeMessages(exchange, routingKey, apiKey, test)).resolves.toBeUndefined() // Consume message for consumer 1
+    await expect(consumeMessages(exchange, routingKey, apiKey, test)).resolves.toBeUndefined() // Consume message for consumer 2
     await expect(sendMessage(exchange, routingKey, message, apiKey)).resolves.toBeUndefined() // Send message
 
     // Wait for both consumers to consume the message
@@ -118,8 +128,8 @@ describe('Message Passing Test', () => {
     ])
 
     // Verify that the mocked functions were called with the correct parameters
-    expect(consumeMessagesMock1).toHaveBeenCalledWith(exchange, routingKey, apiKey)
-    expect(consumeMessagesMock2).toHaveBeenCalledWith(exchange, routingKey, apiKey)
+    expect(consumeMessagesMock1).toHaveBeenCalledWith(exchange, routingKey, apiKey, test)
+    expect(consumeMessagesMock2).toHaveBeenCalledWith(exchange, routingKey, apiKey, test)
     expect(sendMessageMock).toHaveBeenCalledWith(exchange, routingKey, message, apiKey)
   })
   it('should send and have two consumers consume messages in round-robin fashion', async () => {
@@ -128,6 +138,9 @@ describe('Message Passing Test', () => {
     const message1 = 'Hello, world!1'
     const message2 = 'Hello, world!2'
     const apiKey = 'test_api_key'
+    function test (): void {
+      console.log('callback test')
+    }
 
     // Mocked consumeMessages function for consumer 1
     const consumeMessagesMock1 = jest.fn().mockResolvedValueOnce(undefined)
@@ -151,9 +164,9 @@ describe('Message Passing Test', () => {
 
     // Execute consumption and sending messages
     await sendMessage(exchange, routingKey, message1, apiKey) // Send message 1
-    await expect(consumeMessages(exchange, routingKey, apiKey)).resolves.toBeUndefined() // Consume message 1 for consumer 1
+    await expect(consumeMessages(exchange, routingKey, apiKey, test)).resolves.toBeUndefined() // Consume message 1 for consumer 1
     await sendMessage(exchange, routingKey, message2, apiKey) // Send message 2
-    await expect(consumeMessages(exchange, routingKey, apiKey)).resolves.toBeUndefined() // Consume message 2 for consumer 2
+    await expect(consumeMessages(exchange, routingKey, apiKey, test)).resolves.toBeUndefined() // Consume message 2 for consumer 2
 
     // Wait for both consumers to consume the messages
     await Promise.all([
@@ -162,8 +175,8 @@ describe('Message Passing Test', () => {
     ])
 
     // Verify that the mocked functions were called with the correct parameters
-    expect(consumeMessagesMock1).toHaveBeenCalledWith(exchange, routingKey, apiKey)
-    expect(consumeMessagesMock2).toHaveBeenCalledWith(exchange, routingKey, apiKey)
+    expect(consumeMessagesMock1).toHaveBeenCalledWith(exchange, routingKey, apiKey, test)
+    expect(consumeMessagesMock2).toHaveBeenCalledWith(exchange, routingKey, apiKey, test)
     expect(sendMessageMock).toHaveBeenCalledWith(exchange, routingKey, message1, apiKey)
     expect(sendMessageMock).toHaveBeenCalledWith(exchange, routingKey, message2, apiKey)
   })
