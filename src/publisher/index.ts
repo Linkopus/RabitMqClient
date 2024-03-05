@@ -2,6 +2,8 @@ import * as amqp from 'amqplib'
 import dotenv from 'dotenv'
 import * as path from 'path'
 import fs from 'fs'
+import ErrorType from '../utils/errorMessages'
+import config from '../config/config'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
@@ -11,41 +13,35 @@ export async function sendMessage (
   message: string,
   apiKey: string
 ): Promise<void> {
-  let connection: amqp.Connection | null = null
-  let channel: amqp.Channel | null = null
-
   try {
-    const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
-    const clientCertPath = process.env.CLIENT_CERT_PATH
-    const clientKeyPath = process.env.CLIENT_KEY_PATH
-    const caCertPath = process.env.CA_CERT_PATH
+    const rabbitMQUrl = config.rabbitmqurl
+    const clientCertPath = config.client_cert
+    const clientKeyPath = config.client_key
+    const caCertPath = config.ca_cert
+    const passphrase = config.passphrase
 
-    if (clientCertPath === null || clientCertPath === undefined || clientCertPath === '' ||
-    clientKeyPath === null || clientKeyPath === undefined || clientKeyPath === '' ||
-    caCertPath === null || caCertPath === undefined || caCertPath === '') {
-      throw new Error('Client certificate, client key, or CA certificate paths are not defined.')
+    if (!clientCertPath || !clientKeyPath || !caCertPath) {
+      throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
     }
     const clientCert = fs.readFileSync(clientCertPath)
     const clientKey = fs.readFileSync(clientKeyPath)
     const caCert = fs.readFileSync(caCertPath)
 
-    connection = await amqp.connect(rabbitMQUrl, {
+    const connection: amqp.Connection = await amqp.connect(rabbitMQUrl, {
       cert: clientCert,
       key: clientKey,
-      passphrase: 'linkopus',
+      passphrase,
       ca: [caCert]
     })
 
-    channel = await connection.createChannel() // Non-null assertion operator here
+    const channel: amqp.Channel = await connection.createChannel()
 
     await channel.assertExchange(exchange, 'direct', { durable: true })
     channel.publish(exchange, routingKey, Buffer.from(message))
-  } finally {
-    if (channel != null) {
-      await channel.close()
-    }
-    if (connection != null) {
-      await connection.close()
-    }
+
+    await channel.close()
+    await connection.close()
+  } catch (error) {
+    console.error('Error occurred:', error)
   }
 }

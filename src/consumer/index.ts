@@ -2,45 +2,49 @@ import * as amqp from 'amqplib'
 import dotenv from 'dotenv'
 import * as path from 'path'
 import fs from 'fs'
+import ErrorType from '../utils/errorMessages'
+import config from '../config/config'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
-let sharedConnection: amqp.Connection | null = null
-let sharedChannel: amqp.Channel | null = null
+const sharedConnection: { connection: amqp.Connection | null } = { connection: null }
+const sharedChannel: { channel: amqp.Channel | null } = { channel: null }
 
 async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
   try {
-    if (sharedConnection === null || sharedChannel === null) {
-      const clientCertPath = process.env.CLIENT_CERT_PATH
-      const clientKeyPath = process.env.CLIENT_KEY_PATH
-      const caCertPath = process.env.CA_CERT_PATH
+    if (!sharedConnection.connection || !sharedChannel.channel) {
+      const clientCertPath = config.client_cert
+      const clientKeyPath = config.client_key
+      const caCertPath = config.ca_cert
+      const passphrase = config.passphrase
 
-      if (clientCertPath === null || clientCertPath === undefined || clientCertPath === '' ||
-      clientKeyPath === null || clientKeyPath === undefined || clientKeyPath === '' ||
-      caCertPath === null || caCertPath === undefined || caCertPath === '') {
-        throw new Error('Client certificate, client key, or CA certificate paths are not defined.')
+      if (!clientCertPath || !clientKeyPath || !caCertPath) {
+        throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
       }
 
       const clientCert = fs.readFileSync(clientCertPath)
       const clientKey = fs.readFileSync(clientKeyPath)
       const caCert = fs.readFileSync(caCertPath)
 
-      sharedConnection = await amqp.connect(rabbitMQUrl, {
+      const connection = await amqp.connect(rabbitMQUrl, {
         cert: clientCert,
         key: clientKey,
-        passphrase: 'linkopus',
+        passphrase,
         ca: [caCert]
       })
-      sharedChannel = await sharedConnection.createChannel()
-      sharedConnection.on('error', (err) => {
+      const channel = await connection.createChannel()
+      connection.on('error', (err) => {
         console.error('Shared connection error', err)
       })
-      sharedConnection.on('close', () => {
+      connection.on('close', () => {
         console.log('Shared connection closed')
       })
+
+      sharedConnection.connection = connection
+      sharedChannel.channel = channel
     }
 
-    return sharedChannel
+    return sharedChannel.channel
   } catch (error) {
     console.error('Error creating channel:', error)
     throw error
@@ -54,10 +58,10 @@ export async function consumeMessages (
   callback: (content: string, key: string) => void
 ): Promise<void> {
   try {
-    const rabbitMQUrl = process.env.RABBIT_MQ_URL ?? ''
+    const rabbitMQUrl = config.rabbitmqurl
     const channel = await createChannel(rabbitMQUrl)
 
-    const queueName = `${routingKey}-${apiKey}`
+    const queueName = `${apiKey}`
     await channel.assertExchange(exchange, 'direct', { durable: true })
     const assertQueue = await channel.assertQueue(queueName, { exclusive: false, autoDelete: true })
     await channel.bindQueue(assertQueue.queue, exchange, routingKey)
@@ -66,7 +70,7 @@ export async function consumeMessages (
 
     await new Promise<void>((resolve, reject) => {
       channel.consume(queueName, (msg) => {
-        if (msg !== null) {
+        if (msg) {
           const content = msg.content.toString()
           const key = msg.fields.routingKey
 

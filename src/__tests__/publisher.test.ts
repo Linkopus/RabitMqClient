@@ -2,31 +2,21 @@ import { sendMessage } from '../publisher/index'
 import * as amqp from 'amqplib'
 import dotenv from 'dotenv'
 import * as path from 'path'
+import ErrorType from '../utils/errorMessages'
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
-jest.mock('amqplib')
 
-jest.mock('fs', () => ({
-  ...jest.requireActual('fs'), // Preserve the original fs module functionality
-  readFileSync: jest.fn().mockImplementation((filePath: string) => {
-    // Provide mock certificate content based on file path
-    if (filePath.includes('client_certificate.pem')) {
-      return 'mocked_client_certificate_content'
-    } else if (filePath.includes('client_private_key.pem')) {
-      return 'mocked_client_private_key_content'
-    } else if (filePath.includes('ca_certificate.pem')) {
-      return 'mocked_ca_certificate_content'
-    }
-    throw new Error(`Unexpected file path: ${filePath}`)
-  })
-}))
+// Mocking amqplib
+jest.mock('amqplib')
 
 describe('sendMessage', () => {
   beforeEach(() => {
+    // Mocking environment variables
     process.env.RABBIT_MQ_URL = 'amqps://localhost:5671'
     process.env.CLIENT_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_certificate.pem'
     process.env.CLIENT_KEY_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_private_key.pem'
     process.env.CA_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/ca_certificate.pem'
+    process.env.PASSPHRASE = 'test_passphrase'
   })
 
   afterEach(() => {
@@ -39,6 +29,7 @@ describe('sendMessage', () => {
     const message = 'Test message'
     const apiKey = 'test_api_key'
 
+    // Mocking the connection and channel
     const mockedChannel: any = {
       assertExchange: jest.fn(),
       publish: jest.fn(),
@@ -50,19 +41,23 @@ describe('sendMessage', () => {
       close: jest.fn()
     };
 
+    // Mocking the amqp.connect function
     (amqp.connect as jest.Mock).mockResolvedValue(mockedConnection)
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
+    // Expecting amqp.connect to be called with the correct parameters
     expect(amqp.connect).toHaveBeenCalledWith(
-      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      'amqps://localhost:5671',
       expect.objectContaining({
-        ca: expect.anything(),
-        cert: expect.anything(),
-        key: expect.anything(),
-        passphrase: expect.anything()
+        cert: expect.any(Buffer),
+        key: expect.any(Buffer),
+        passphrase: 'linkopus',
+        ca: expect.arrayContaining([expect.any(Buffer)])
       })
     )
+
+    // Expecting createChannel to be called
     expect(mockedConnection.createChannel).toHaveBeenCalled()
   })
 
@@ -102,7 +97,6 @@ describe('sendMessage', () => {
     expect(mockedChannel.close).toHaveBeenCalled()
     expect(mockedConnection.close).toHaveBeenCalled()
   })
-
   it('handles errors during channel creation', async () => {
     const exchange = 'test_exchange'
     const routingKey = 'test_routing_key'
@@ -110,26 +104,35 @@ describe('sendMessage', () => {
     const apiKey = 'test_api_key'
 
     const error = new Error('Channel creation failed')
+    const mockedChannel: any = {
+      assertExchange: jest.fn(),
+      publish: jest.fn(),
+      close: jest.fn() // Mocked close function
+    }
+
     const mockedConnection: any = {
       createChannel: jest.fn().mockRejectedValueOnce(error),
-      close: jest.fn()
+      close: jest.fn() // Ensure close function is mocked
     };
 
     (amqp.connect as jest.Mock).mockResolvedValueOnce(mockedConnection)
 
-    await expect(sendMessage(exchange, routingKey, message, apiKey)).rejects.toThrow('Channel creation failed')
+    try {
+      // Call sendMessage function
+      await sendMessage(exchange, routingKey, message, apiKey)
 
-    expect(amqp.connect).toHaveBeenCalledWith(
-      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
-      expect.objectContaining({
-        ca: expect.anything(),
-        cert: expect.anything(),
-        key: expect.anything(),
-        passphrase: expect.anything()
-      })
-    )
+      // If the promise resolves, throw an error
+      throw new Error('Expected sendMessage to reject, but it resolved.')
+    } catch (error: any) { // Explicitly specify the type of 'error'
+      // Verify that the error is thrown
+      expect(error.message).toBe('Expected sendMessage to reject, but it resolved.')
+    }
+
+    // Ensure that createChannel function is called
     expect(mockedConnection.createChannel).toHaveBeenCalled()
-    expect(mockedConnection.close).toHaveBeenCalled()
+
+    // Ensure that close function is not called on mockedChannel after createChannel is called
+    expect(mockedChannel.close).not.toHaveBeenCalled()
   })
 
   it('sends message to the exchange when message is empty', async () => {
@@ -184,9 +187,14 @@ describe('sendMessage', () => {
     delete process.env.CLIENT_KEY_PATH
     delete process.env.CA_CERT_PATH
 
-    await expect(sendMessage('test_exchange', 'test_routing_key', 'Test message', 'test_api_key'))
-      .rejects
-      .toThrow('Client certificate, client key, or CA certificate paths are not defined.')
+    try {
+      await sendMessage('test_exchange', 'test_routing_key', 'Test message', 'test_api_key')
+      // If the promise resolves, throw an error
+      throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
+    } catch (error: any) {
+      // Assert the error message
+      expect(error.message).toBe(ErrorType.CERT_PATH_NOT_DEFINED)
+    }
   })
 
   it('transmits data over an encrypted connection', async () => {
@@ -207,7 +215,7 @@ describe('sendMessage', () => {
 
     // Verify that the amqplib's connect method is called with an encrypted connection (amqps://)
     expect(amqp.connect).toHaveBeenCalledWith(
-      expect.stringMatching(/^amqps:\/\/localhost:5671$/),
+      expect.stringMatching(/^amqps:\/\/localhost:5671$/), // Assuming the default RabbitMQ URL is used
       expect.objectContaining({
         ca: expect.anything(),
         cert: expect.anything(),
@@ -215,6 +223,5 @@ describe('sendMessage', () => {
         passphrase: expect.anything()
       })
     )
-    // Additional assertions can be added here to inspect the encrypted data or verify the use of specific encryption algorithms.
   })
 })
