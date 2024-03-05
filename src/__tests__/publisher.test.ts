@@ -6,15 +6,12 @@ import config from '../config/config'
 // Mocking amqplib
 jest.mock('amqplib')
 
+jest.mock('fs', () => ({
+  readFileSync: jest.fn().mockReturnValue('mocked certificate data')
+}))
+
 describe('sendMessage', () => {
   beforeEach(() => {
-    // Mocking environment variables
-    /* process.env.RABBIT_MQ_URL = 'amqps://localhost:5671';
-    process.env.CLIENT_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_certificate.pem';
-    process.env.CLIENT_KEY_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_private_key.pem';
-    process.env.CA_CERT_PATH = '/etc/rabbitmq/ssl/tls-gen/basic/result/ca_certificate.pem';
-    process.env.PASSPHRASE = 'test_passphrase'; */
-
     config.rabbitmqurl = 'amqps://localhost:5671'
     config.client_cert = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_certificate.pem'
     config.client_key = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_private_key.pem'
