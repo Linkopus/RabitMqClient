@@ -10,21 +10,16 @@ export async function sendMessage (
   apiKey: string
 ): Promise<void> {
   try {
-    const rabbitMQUrl = config.rabbitmqurl
-    const clientCertPath = config.client_cert
-    const clientKeyPath = config.client_key
-    const caCertPath = config.ca_cert
     const passphrase = config.passphrase
-
-    if (!clientCertPath || !clientKeyPath || !caCertPath) {
+    if (!config.client_cert || !config.client_key || !config.ca_cert) {
       throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
     }
 
-    const clientCert = fs.readFileSync(clientCertPath)
-    const clientKey = fs.readFileSync(clientKeyPath)
-    const caCert = fs.readFileSync(caCertPath)
+    const clientCert = fs.readFileSync(config.client_cert)
+    const clientKey = fs.readFileSync(config.client_key)
+    const caCert = fs.readFileSync(config.ca_cert)
 
-    const connection: amqp.Connection = await amqp.connect(rabbitMQUrl, {
+    const connection: amqp.Connection = await amqp.connect(config.rabbitmqurl, {
       cert: clientCert,
       key: clientKey,
       passphrase,
