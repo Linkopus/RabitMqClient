@@ -21,9 +21,9 @@ export async function sendMessage (
     const connection: amqp.Connection = await amqp.connect(config.rabbitmqurl, {
       cert: clientCert,
       key: clientKey,
-      config,
-      ca: [caCert],
-      passphrase
+      passphrase,
+      ca: [caCert]
+
     })
 
     const channel: amqp.Channel = await connection.createChannel()

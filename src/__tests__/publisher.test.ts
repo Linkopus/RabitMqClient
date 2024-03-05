@@ -29,7 +29,6 @@ describe('sendMessage', () => {
     const message = 'Test message'
     const apiKey = 'test_api_key'
 
-    // Mocking the connection and channel
     const mockedChannel: any = {
       assertExchange: jest.fn(),
       publish: jest.fn(),
@@ -41,12 +40,10 @@ describe('sendMessage', () => {
       close: jest.fn()
     };
 
-    // Mocking the amqp.connect function
     (amqp.connect as jest.Mock).mockResolvedValue(mockedConnection)
 
     await sendMessage(exchange, routingKey, message, apiKey)
 
-    // Expecting createChannel to be called
     expect(mockedConnection.createChannel).toHaveBeenCalled()
   })
 
@@ -129,25 +126,20 @@ describe('sendMessage', () => {
   it('should use TLS for secure communication', () => {
     const amqpUrl = 'amqps://localhost:5671'
 
-    // Extract protocol from the AMQP URL
     const protocol = amqpUrl.split('://')[0]
 
-    // Assert that the protocol is 'amqps' indicating TLS usage
     expect(protocol).toBe('amqps')
   })
 
   it('ensures TLS certificate paths are defined', async () => {
-    // Invalidate certificate paths to simulate error condition
     config.client_cert = ''
     config.client_key = ''
     config.ca_cert = ''
 
     try {
       await sendMessage('test_exchange', 'test_routing_key', 'Test message', 'test_api_key')
-      // If the call doesn't throw an error, this line should not be reached. Fail the test explicitly.
       fail('Expected an error to be thrown')
     } catch (error: any) {
-      // Ensure error is an instance of Error and has the expected message
       expect(error).toBeInstanceOf(Error)
       expect(error.message).toBe(ErrorType.CERT_PATH_NOT_DEFINED)
     }
@@ -156,13 +148,17 @@ describe('sendMessage', () => {
   it('transmits data over an encrypted connection', async () => {
     const mockedChannel: any = {
       assertExchange: jest.fn(),
-      publish: jest.fn()
+      publish: jest.fn(),
+      close: jest.fn()
     }
 
     const mockedConnection: any = {
-      createChannel: jest.fn().mockResolvedValue(mockedChannel)
+      createChannel: jest.fn().mockResolvedValue(mockedChannel),
+      close: jest.fn()
     };
 
     (amqp.connect as jest.Mock).mockResolvedValue(mockedConnection)
+
+    await expect(sendMessage('test_exchange', 'test_routing_key', 'Test message', 'test_api_key')).resolves.not.toThrow()
   })
 })
