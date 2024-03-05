@@ -14,7 +14,6 @@ export async function sendMessage (
     if (!config.client_cert || !config.client_key || !config.ca_cert) {
       throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
     }
-
     const clientCert = fs.readFileSync(config.client_cert)
     const clientKey = fs.readFileSync(config.client_key)
     const caCert = fs.readFileSync(config.ca_cert)
@@ -22,8 +21,9 @@ export async function sendMessage (
     const connection: amqp.Connection = await amqp.connect(config.rabbitmqurl, {
       cert: clientCert,
       key: clientKey,
-      passphrase,
-      ca: [caCert]
+      config,
+      ca: [caCert],
+      passphrase
     })
 
     const channel: amqp.Channel = await connection.createChannel()
