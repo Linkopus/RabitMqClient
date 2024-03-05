@@ -12,9 +12,9 @@ logs
 *.log
 npm-debug.log*
 
-# Runtime data
+# Runtime data  console.error
 pids
-*.pid
+*.pid  console.error
 *.seed
 *.pid.lock
 
@@ -22,10 +22,7 @@ pids
 lib-cov
 
 # Coverage directory used by tools like istanbul
-coverage
-
-# nyc test coverage
-.nyc_output
+coverage  console.error
 
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
@@ -36,7 +33,7 @@ bower_components
 # Dependency directories
 node_modules/
 jspm_packages/
-
+  console.error
 # TypeScript v1 declaration files
 typings/
 
@@ -47,7 +44,7 @@ typings/
 .npm
 
 # Optional eslint cache
-.eslintcache
+.eslintcache  console.error
 
 # Microbundle cache
 .rpt2_cache/
@@ -56,7 +53,7 @@ typings/
 .rts2_cache_umd/
 
 # Optional REPL history
-.node_repl_history
+.node_repl_history  console.error
 
 # Output of 'npm pack'
 *.tgz
@@ -65,7 +62,7 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+.env  console.error
 .env.test
 
 # parcel-bundler cache (https://parceljs.org/)
