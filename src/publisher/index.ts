@@ -1,11 +1,7 @@
 import * as amqp from 'amqplib'
-import dotenv from 'dotenv'
-import * as path from 'path'
 import fs from 'fs'
 import ErrorType from '../utils/errorMessages'
 import config from '../config/config'
-
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 export async function sendMessage (
   exchange: string,
@@ -23,6 +19,7 @@ export async function sendMessage (
     if (!clientCertPath || !clientKeyPath || !caCertPath) {
       throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
     }
+
     const clientCert = fs.readFileSync(clientCertPath)
     const clientKey = fs.readFileSync(clientKeyPath)
     const caCert = fs.readFileSync(caCertPath)
@@ -41,7 +38,8 @@ export async function sendMessage (
 
     await channel.close()
     await connection.close()
-  } catch (error) {
-    console.error('Error occurred:', error)
+  } catch (error: any) {
+    console.error(error.message)
+    throw error
   }
 }
