@@ -1,6 +1,7 @@
 import { sendMessage } from '../publisher/index'
 import * as amqp from 'amqplib'
 import ErrorType from '../utils/errorMessages'
+import config_test from '../config/config.test'
 import config from '../config/config'
 
 // Mocking amqplib
@@ -12,11 +13,11 @@ jest.mock('fs', () => ({
 
 describe('sendMessage', () => {
   beforeEach(() => {
-    config.rabbitmqurl = 'amqps://localhost:5671'
-    config.client_cert = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_certificate.pem'
-    config.client_key = '/etc/rabbitmq/ssl/tls-gen/basic/result/client_private_key.pem'
-    config.ca_cert = '/etc/rabbitmq/ssl/tls-gen/basic/result/ca_certificate.pem'
-    config.passphrase = 'test_passphrase'
+    config.rabbitmqurl = config_test.rabbitmqurl_test
+    config.client_cert = config_test.client_cert_test
+    config.client_key = config_test.client_key_test
+    config.ca_cert = config_test.ca_cert_test
+    config.passphrase = config_test.passphrase_test
   })
 
   afterEach(() => {

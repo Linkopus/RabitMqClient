@@ -10,15 +10,15 @@ jest.mock('../publisher')
 jest.mock('../consumer')
 
 describe('Message Passing Test', () => {
+  const exchange = 'test_exchange'
+  const apiKey = 'test_api_key'
+
+  function test (): void {
+    console.log('callback test')
+  }
   it('should send and consume a message', async () => {
-    const exchange = 'test_exchange'
     const routingKey = 'test_routing_key'
     const message = 'Hello, world!'
-    const apiKey = 'test_api_key'
-
-    function test (): void {
-      console.log('callback test')
-    }
 
     // Mocked consumeMessages function
     const consumeMessagesMock = jest.fn().mockResolvedValueOnce(undefined)
@@ -41,15 +41,10 @@ describe('Message Passing Test', () => {
     expect(sendMessageMock).toHaveBeenCalledWith(exchange, routingKey, message, apiKey)
   })
   it('should send and consume two messages with two consumers', async () => {
-    const exchange = 'test_exchange'
     const routingKey1 = 'test_routing_key_1'
     const routingKey2 = 'test_routing_key_2'
     const message1 = '1'
     const message2 = '2'
-    const apiKey = 'test_api_key'
-    function test (): void {
-      console.log('callback test')
-    }
 
     // Mocked consumeMessages function for consumer 1
     const consumeMessagesMock1 = jest.fn().mockResolvedValueOnce(undefined)
@@ -88,13 +83,8 @@ describe('Message Passing Test', () => {
     expect(sendMessageMock2).toHaveBeenCalledWith(exchange, routingKey2, message2, apiKey)
   })
   it('should send and have two consumers consume the same message simultaneously', async () => {
-    const exchange = 'test_exchange'
     const routingKey = 'test_routing_key'
     const message = 'Hello, world!'
-    const apiKey = 'test_api_key'
-    function test (): void {
-      console.log('callback test')
-    }
 
     // Mocked consumeMessages function for consumer 1
     const consumeMessagesMock1 = jest.fn().mockResolvedValueOnce(undefined)
@@ -133,14 +123,9 @@ describe('Message Passing Test', () => {
     expect(sendMessageMock).toHaveBeenCalledWith(exchange, routingKey, message, apiKey)
   })
   it('should send and have two consumers consume messages in round-robin fashion', async () => {
-    const exchange = 'test_exchange'
     const routingKey = 'test_routing_key'
     const message1 = 'Hello, world!1'
     const message2 = 'Hello, world!2'
-    const apiKey = 'test_api_key'
-    function test (): void {
-      console.log('callback test')
-    }
 
     // Mocked consumeMessages function for consumer 1
     const consumeMessagesMock1 = jest.fn().mockResolvedValueOnce(undefined)
