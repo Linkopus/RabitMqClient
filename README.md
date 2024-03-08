@@ -1,4 +1,4 @@
-### RabbitMQ Installation
+### RabbitMQ  Installation
 
 **Install Erlang if not already installed:**
 
