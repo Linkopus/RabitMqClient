@@ -58,7 +58,7 @@ export async function consumeMessages (
     const rabbitMQUrl = config.rabbitmqurl
     const channel = await createChannel(rabbitMQUrl)
 
-    const queueName = `${apiKey}`
+    const queueName = apiKey
     await channel.assertExchange(exchange, 'direct', { durable: true })
     const assertQueue = await channel.assertQueue(queueName, { exclusive: false, autoDelete: true })
     await channel.bindQueue(assertQueue.queue, exchange, routingKey)
@@ -71,21 +71,16 @@ export async function consumeMessages (
           const content = msg.content.toString()
           const key = msg.fields.routingKey
 
-          if (key === routingKey) {
-            console.log(`Received:'${content}' with key '${key}'`)
-            callback(content, key)
-            channel.ack(msg)
-          } else {
-            console.log(`Ignored: invalid key '${key}'`)
-          }
+          console.log(`Received:'${content}' with key '${key}'`)
+          callback(content, key)
+          channel.ack(msg)
         }
-      }, { noAck: false }).then(() => {
-        resolve()
-      }).catch((error) => {
-        reject(error)
-      })
+      }, { noAck: false })
+        .then(() => { resolve() })
+        .catch((error) => { reject(error) })
     })
   } catch (error) {
     console.error('Error:', error)
+    throw error
   }
 }

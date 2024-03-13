@@ -13,7 +13,6 @@ jest.mock('fs', () => ({
 
 describe('sendMessage', () => {
   beforeEach(() => {
-    config.rabbitmqurl = config_test.rabbitmqurl_test
     config.client_cert = config_test.client_cert_test
     config.client_key = config_test.client_key_test
     config.ca_cert = config_test.ca_cert_test
