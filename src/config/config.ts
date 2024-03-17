@@ -1,6 +1,8 @@
 import dotenv from 'dotenv'
-import * as path from 'path'
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+import findConfig from 'find-config'
+
+const envPath = findConfig('.env')
+dotenv.config({ path: envPath ?? undefined })
 
 interface Config {
   rabbitmqurl: string

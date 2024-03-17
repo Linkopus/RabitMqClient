@@ -1,11 +1,7 @@
 import * as amqp from 'amqplib'
-import dotenv from 'dotenv'
-import * as path from 'path'
 import fs from 'fs'
 import ErrorType from '../utils/errorMessages'
 import config from '../config/config'
-
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 const sharedConnection: { connection: amqp.Connection | null } = { connection: null }
 const sharedChannel: { channel: amqp.Channel | null } = { channel: null }
