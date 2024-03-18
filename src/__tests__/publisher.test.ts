@@ -1,7 +1,7 @@
 import { sendMessage } from '../publisher/index'
 import * as amqp from 'amqplib'
 import ErrorType from '../utils/errorMessages'
-import config_test from '../config/config.test'
+import config_test from './config/config.test'
 import config from '../config/config'
 
 // Mocking amqplib

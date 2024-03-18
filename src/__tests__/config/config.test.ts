@@ -14,9 +14,9 @@ interface Config {
 }
 
 const config: Config = {
-  client_cert_test: '<rootDir>/src/ssl_cert/ca_certificate.pem',
-  client_key_test: '<rootDir>/src/ssl_cert/client_private_key.pem',
-  ca_cert_test: '<rootDir>/src/ssl_cert/ca_certificate.pem',
+  client_cert_test: '<rootDir>/src/__tests__/ssl_cert/client_certificate.pem',
+  client_key_test: '<rootDir>/src/__tests__/ssl_cert/client_private_key.pem',
+  ca_cert_test: '<rootDir>/src/__tests__/ssl_cert/ca_certificate.pem',
   passphrase_test: 'test_passphrase'
 }
 
