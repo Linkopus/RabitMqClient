@@ -1,5 +1,4 @@
 import * as amqp from 'amqplib'
-import fs from 'fs'
 import ErrorType from '../utils/errorMessages'
 import config from '../config/config'
 
