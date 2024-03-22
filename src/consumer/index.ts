@@ -18,14 +18,12 @@ async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
       const clientCert = config.client_cert
       const clientKey = config.client_key
       const caCert = config.ca_cert
-      
       const connection = await amqp.connect(rabbitMQUrl, {
-        cert: clientCert,
-        key: clientKey,
-        passphrase,
-        ca: [caCert],
-        checkServerIdentity: () => undefined // This skips the hostname/IP check
-
+      cert: clientCert,
+      key: clientKey,
+      passphrase,
+      ca: [caCert],
+      checkServerIdentity: () => undefined // This skips the hostname/IP check
       })
       const channel = await connection.createChannel()
       connection.on('error', (err) => {
