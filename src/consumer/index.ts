@@ -1,4 +1,5 @@
 import * as amqp from 'amqplib'
+
 import ErrorType from '../utils/errorMessages'
 import config from '../config/config'
 
@@ -14,9 +15,11 @@ async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
         throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
       }
 
+
       const clientCert = config.client_cert
       const clientKey = config.client_key
       const caCert = config.ca_cert
+
 
       const connection = await amqp.connect(rabbitMQUrl, {
         cert: clientCert,
@@ -24,6 +27,7 @@ async function createChannel (rabbitMQUrl: string): Promise<amqp.Channel> {
         passphrase,
         ca: [caCert],
         checkServerIdentity: () => undefined // This skips the hostname/IP check
+
       })
       const channel = await connection.createChannel()
       connection.on('error', (err) => {
