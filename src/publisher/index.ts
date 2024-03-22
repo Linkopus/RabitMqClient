@@ -1,6 +1,4 @@
 import * as amqp from 'amqplib'
-
-
 import ErrorType from '../utils/errorMessages'
 import config from '../config/config'
 
@@ -18,7 +16,6 @@ export async function sendMessage (
     const clientCert = config.client_cert
     const clientKey = config.client_key
     const caCert = config.ca_cert
-
 
     const connection: amqp.Connection = await amqp.connect(config.rabbitmqurl, {
       cert: clientCert,
