@@ -1,5 +1,4 @@
 import * as amqp from 'amqplib'
-import fs from 'fs'
 import ErrorType from '../utils/errorMessages'
 import config from '../config/config'
 
@@ -14,16 +13,16 @@ export async function sendMessage (
     if (!config.client_cert || !config.client_key || !config.ca_cert) {
       throw new Error(ErrorType.CERT_PATH_NOT_DEFINED)
     }
-    const clientCert = fs.readFileSync(config.client_cert)
-    const clientKey = fs.readFileSync(config.client_key)
-    const caCert = fs.readFileSync(config.ca_cert)
+    const clientCert = config.client_cert
+    const clientKey = config.client_key
+    const caCert = config.ca_cert
 
     const connection: amqp.Connection = await amqp.connect(config.rabbitmqurl, {
       cert: clientCert,
       key: clientKey,
       passphrase,
-      ca: [caCert]
-
+      ca: [caCert],
+      checkServerIdentity: () => undefined // This skips the hostname/IP check
     })
 
     const channel: amqp.Channel = await connection.createChannel()
